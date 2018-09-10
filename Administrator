@@ -1,0 +1,54 @@
+package finalProject;
+
+public class Administrator {
+	
+	private String fNameAdmn;
+	private String lNameAdmn;
+	private String userNameAdmn;
+	private String passwordAdmn;
+	
+	public Administrator(){
+		super();
+	}
+	
+	public Administrator(String fNameAdmn, String lNameAdmn, String userNameAdmn, String passwordAdmn){
+		
+		this.fNameAdmn = fNameAdmn;
+		this.lNameAdmn = lNameAdmn;
+		this.userNameAdmn = userNameAdmn;
+		this.passwordAdmn = passwordAdmn;
+		
+	}
+
+	public String getfNameAdmn() {
+		return fNameAdmn;
+	}
+
+	public void setfNameAdmn(String fNameAdmn) {
+		this.fNameAdmn = fNameAdmn;
+	}
+
+	public String getlNameAdmn() {
+		return lNameAdmn;
+	}
+
+	public void setlNameAdmn(String lNameAdmn) {
+		this.lNameAdmn = lNameAdmn;
+	}
+
+	public String getUserNameAdmn() {
+		return userNameAdmn;
+	}
+
+	public void setUserNameAdmn(String userNameAdmn) {
+		this.userNameAdmn = userNameAdmn;
+	}
+
+	public String getPasswordAdmn() {
+		return passwordAdmn;
+	}
+
+	public void setPasswordAdmn(String passwordAdmn) {
+		this.passwordAdmn = passwordAdmn;
+	}
+}
