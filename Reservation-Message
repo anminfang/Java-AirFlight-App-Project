@@ -1,0 +1,35 @@
+package finalProject;
+
+import java.io.Serializable;
+
+public class ReservationMessage implements Serializable{
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	public int    customerID;
+	public String fName;
+	public String lName;
+	public String address;
+	public int    telephoneNum;
+	public String emailAddress;
+	public String state;
+	public String city;
+	public int    zipcode;
+	
+	public ReservationMessage(int customerID, String fName, String lName, String address, 
+			int telephoneNum, String emailAddress, String state, String city, int zipcode){
+		
+		this.customerID = customerID;
+		this.fName = fName;
+		this.lName = lName;
+		this.address = address;
+		this.telephoneNum = telephoneNum;
+		this.emailAddress = emailAddress;
+		this.state = state;
+		this.city = city;
+		this.zipcode = zipcode;
+		
+	}
+}
