@@ -1,0 +1,19 @@
+package finalProject;
+
+import java.io.Serializable;
+
+public class UserCheckMessage implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	public String userName;
+	public String password;
+	
+	public UserCheckMessage(String userName, String password){
+		
+		this.userName = userName;
+		this.password = password;
+		
+	}
+}
