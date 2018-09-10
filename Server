@@ -1,0 +1,19 @@
+package finalProject;
+
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+public class Server {
+
+	private ObjectOutputStream  outputToView;
+	private ObjectInputStream   inputFromClient;
+	
+	
+	
+	
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+
+	}
+
+}
