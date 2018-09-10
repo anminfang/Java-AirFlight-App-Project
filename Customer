@@ -1,0 +1,137 @@
+package finalProject;
+
+public class Customer {
+	
+	private int    customerID;
+	private String fName;
+	private String lName;
+	private String address;
+	private String userName;
+	private String password;
+	private int    telephoneNum;
+	private String emailAddress;
+	private String state;
+	private String city;
+	private int    zipcode;
+	
+	public Customer(){
+		super();
+	}
+	
+	public Customer(int customerID, String fName, String lName, String address, String userName, 
+			String password, int telephoneNum, String emailAddress, String state, String city, int zipcode){
+		
+		this.customerID = customerID;
+		this.fName = fName;
+		this.lName = lName;
+		this.address = address;
+		this.userName = userName;
+		this.password = password;
+		this.telephoneNum = telephoneNum;
+		this.emailAddress = emailAddress;
+		this.state = state;
+		this.city = city;
+		this.zipcode = zipcode;
+		
+	}
+	
+	public int getCustomerID() {
+		return customerID;
+	}
+
+	public void setCustomerID(int customerID) {
+		this.customerID = customerID;
+	}
+
+	public String getfName() {
+		return fName;
+	}
+
+	public void setfName(String fName) {
+		this.fName = fName;
+	}
+
+	public String getlName() {
+		return lName;
+	}
+
+	public void setlName(String lName) {
+		this.lName = lName;
+	}
+
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public int getTelephoneNum() {
+		return telephoneNum;
+	}
+
+	public void setTelephoneNum(int telephoneNum) {
+		this.telephoneNum = telephoneNum;
+	}
+
+	public String getEmailAddress() {
+		return emailAddress;
+	}
+
+	public void setEmailAddress(String emailAddress) {
+		this.emailAddress = emailAddress;
+	}
+
+	public String getState() {
+		return state;
+	}
+
+	public void setState(String state) {
+		this.state = state;
+	}
+
+	public String getCity() {
+		return city;
+	}
+
+	public void setCity(String city) {
+		this.city = city;
+	}
+
+	public int getZipcode() {
+		return zipcode;
+	}
+
+	public void setZipcode(int zipcode) {
+		this.zipcode = zipcode;
+	}
+
+	@Override
+	public String toString() {
+		return "CustomerInfo [fName=" + fName + ", lName=" + lName
+				+ ", address=" + address + ", userName=" + userName
+				+ ", password=" + password + ", telephoneNum=" + telephoneNum
+				+ ", emailAddress=" + emailAddress + ", state=" + state
+				+ ", city=" + city + ", zipcode=" + zipcode + "]";
+	}
+	
+	
+	
+}
