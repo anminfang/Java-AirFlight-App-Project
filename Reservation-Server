@@ -1,0 +1,634 @@
+package FinalProject;
+import java.net.*;
+import java.io.ObjectOutputStream;
+import java.beans.Statement;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.swing.JOptionPane;
+
+import FinalProject.Server.HandleAClient;
+ 
+public class ReservationServerML {
+	
+	Socket conn;
+	ServerSocket serverSocket;
+	
+	private Connection connect = null;
+	private Statement statement = null;
+	private PreparedStatement preparedStatement= null;
+	private ResultSet resultSet = null;
+	
+	ObjectInputStream serverInputStream;
+	ObjectOutputStream serverOutputStream;
+	
+	Message message;
+	ReservationMessage rMessage;
+	UserCheckMessage uMessage;
+	NewUserMessage nMessage;
+	AdmnCheckMessage aMessage;
+	AdmnManageMessage amMessage;
+	
+	private final int INSERT_OP      = 0;
+	private final int UPDATE_OP      = 1;
+	private final int DELETE_OP      = 2;
+	private final int CUSLOGIN_OP    = 3;
+	private final int ADMNLOGIN_OP   = 4;
+	private final int SIGNUPNOW_OP   = 5;
+	private final int SEARCH_OP      = 6;
+	private final int SUBMIT_OP      = 7;
+	
+	public ReservationServer(int port) throws ClassNotFoundException, IOException, SQLException{
+		startListening(port);
+	}
+	
+	public boolean startListening(int port) throws IOException, ClassNotFoundException, SQLException{
+		
+		try {
+			serverSocket = new ServerSocket(port);
+			
+			Class.forName("com.mysql.jdbc.Driver");
+			System.out.println("Driver loaded");
+			
+			connect = DriverManager.getConnection(
+					"jdbc:mysql://BUSCISMYSQL01/group4db", "amfang", "831063339");
+			System.out.println("Database connected\n");
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		
+		while (true) {
+	        // Listen for a new connection request
+	        Socket socket = serverSocket.accept(); 
+	        //gui.txtDisplayResults.append("Connection Request ....... Connection Accepted" + "\n");
+           // Create a new thread for the connection
+	        HandleAClient task = new HandleAClient(socket); 
+	        // Start the new thread
+	        new Thread(task).start();
+	       
+	      }
+		
+		//conn =serverSocket.accept();
+		//serverInputStream = new ObjectInputStream(conn.getInputStream());
+		//serverOutputStream = new ObjectOutputStream(conn.getOutputStream());
+		//receivingUserCheckMessage();
+		//return true;
+		
+	}
+	
+	public void receivingUserCheckMessage() throws ClassNotFoundException, IOException, SQLException{	
+		uMessage = null;
+		uMessage = (UserCheckMessage) serverInputStream.readObject();
+			
+		if(uMessage.opType == CUSLOGIN_OP){	
+			cusLogIn(uMessage);
+		}
+		sendUserCheckMessage(uMessage);	
+	}
+	
+	public void sendUserCheckMessage(UserCheckMessage uMessage) throws IOException{
+		serverOutputStream.writeObject(uMessage);
+	}
+	
+	public Message cusLogIn(UserCheckMessage uMessage) throws SQLException{
+		Message m=new Message();
+		statement = (Statement) connect.createStatement();
+		
+		resultSet = ((PreparedStatement) statement).executeQuery(
+				"select * from customer where user_name = " + uMessage.userName + ";");
+		
+		if(resultSet.absolute(1)){
+			JOptionPane.showMessageDialog(null, "User Name exists.");
+			uMessage.setOpType(1);
+			//send back a number to tell client that user exists and then enter into a ticket check interface
+		}
+		else 
+			uMessage.setOpType(0);
+		resultSet.close();
+		m.setUserCheckMessage(uMessage);
+		m.setType(1);
+		return m;
+	}
+
+	public void recevingNewUserMessage() throws ClassNotFoundException, IOException, SQLException{
+		nMessage = null;
+		nMessage = (NewUserMessage) serverInputStream.readObject();
+		
+		if(nMessage.opType == SIGNUPNOW_OP){
+			newUser(nMessage);
+		}
+		sendNewUserMessage(nMessage);
+	}
+	
+	public void sendNewUserMessage(NewUserMessage nMessage) throws IOException{
+		serverOutputStream.writeObject(nMessage);
+	}
+	
+	public void newUser(NewUserMessage nMessage) throws SQLException{
+		
+		statement = (Statement) connect.createStatement();
+		
+		resultSet = ((PreparedStatement) statement).executeQuery(
+				"select * from Customer where id = " + nMessage.customerID + ";");
+		
+		if(!resultSet.next()){
+			preparedStatement = connect.prepareStatement(
+					"insert into Customer values (?,?,?,?,?,?,?,?,?)");
+			preparedStatement.setInt(1, nMessage.customerID);
+			preparedStatement.setString(2, nMessage.fName);
+			preparedStatement.setString(3, nMessage.lName);
+			preparedStatement.setString(4, nMessage.address);
+			preparedStatement.setString(5, nMessage.userName);
+			preparedStatement.setString(6, nMessage.password);
+			preparedStatement.setString(7, nMessage.telephoneNum);
+			preparedStatement.setString(8, nMessage.emailAddress);
+			preparedStatement.setInt(9, nMessage.points);
+			preparedStatement.executeUpdate();
+		}
+	}
+
+	public void recevingAdmnCheckMessage() throws ClassNotFoundException, IOException, SQLException{
+		aMessage = null;
+		aMessage = (AdmnCheckMessage) serverInputStream.readObject();
+		
+		if(aMessage.opType == ADMNLOGIN_OP){
+			admnLogIn(aMessage);
+		}
+		sendAdmnCheckMessage(aMessage);
+	}
+	
+	public void sendAdmnCheckMessage(AdmnCheckMessage aMessage) throws IOException{
+		serverOutputStream.writeObject(aMessage);	
+	}
+	
+	public Message admnLogIn(AdmnCheckMessage aMessage) throws SQLException{
+		Message m=new Message();
+		statement = (Statement) connect.createStatement();
+		
+		resultSet = ((PreparedStatement) statement).executeQuery(
+				"select * from administrator where user_name = " + aMessage.userNameAdmn + ";");
+		
+		if(resultSet.absolute(1)){
+			//JOptionPane.showMessageDialog(null, "User Name exists.");
+			//send back a number to tell client that user exists and then enter into a ticket check interface
+			aMessage.setOpType(1);
+			
+		}
+		else
+			aMessage.setOpType(0);
+		
+		resultSet.close();
+		m.setAdmnCheckMessage(aMessage);
+		m.setType(3);
+		return m;
+	}
+	
+	public void recevingAdmnManageMessage(AdmnManageMessage amMessage) throws ClassNotFoundException, IOException, SQLException{
+		amMessage = null;
+		amMessage = (AdmnManageMessage) serverInputStream.readObject();
+		
+		switch(amMessage.opType){
+		
+		case INSERT_OP: insert(amMessage);
+		break;
+		case UPDATE_OP: update(amMessage);
+		break;
+		case DELETE_OP: delete(amMessage);
+		break;	
+		}
+		sendAdmnManageMessage(amMessage);
+	}
+	
+	public void sendAdmnManageMessage(AdmnManageMessage amMessage) throws IOException{
+		serverOutputStream.writeObject(amMessage);
+	}
+	
+	public void insert(AdmnManageMessage amMessage) throws SQLException{
+		statement = (Statement) connect.createStatement();
+		
+		resultSet = ((java.sql.Statement) statement).executeQuery(
+				"select * from flight where id = " + amMessage.flightID + ";");
+		
+		if(!resultSet.next()){
+			preparedStatement = connect.prepareStatement(
+					"insert into flight values (?,?,?,?,?,?)");
+			preparedStatement.setInt(1, amMessage.flightID);
+			preparedStatement.setString(2, amMessage.fromAirport);
+			preparedStatement.setString(3, amMessage.toAirport);
+			preparedStatement.setString(4, amMessage.departTime);
+			preparedStatement.setString(5, amMessage.arriveTime);
+			preparedStatement.setInt(6, amMessage.totalSeats);
+			preparedStatement.executeUpdate();
+		}
+		
+		resultSet = ((java.sql.Statement) statement).executeQuery(
+				"select * from flight_details where id = " + amMessage.flightID + ";");
+		
+		if(!resultSet.next()){
+			preparedStatement = connect.prepareStatement(
+					"insert into flight_details values (?,?,?,?)");
+			preparedStatement.setInt(1, amMessage.flightID);
+			preparedStatement.setDouble(2, amMessage.price);
+			preparedStatement.setInt(3, amMessage.totalSeats);
+			preparedStatement.setString(4, amMessage.departTime);
+			preparedStatement.executeUpdate();
+		}
+	}
+	
+	public void update(AdmnManageMessage amMessage) throws SQLException{		
+		statement = (Statement) connect.createStatement();
+		
+		resultSet = ((java.sql.Statement) statement).executeQuery(
+				"select * from flight where id = " + amMessage.flightID + ";");
+		
+		preparedStatement = connect.prepareStatement(
+				"update flight set airline_name = ?, from_airport = ?,"
+				+ " to_airport = ?, departure_time = ?, arrival_time = ?,"
+						+ " total_seats = ? where id = " + amMessage.flightID + ";");
+
+		preparedStatement.setString(1, amMessage.airlineName);
+		preparedStatement.setString(2, amMessage.fromAirport);
+		preparedStatement.setString(3, amMessage.toAirport);
+		preparedStatement.setString(4, amMessage.departTime);
+		preparedStatement.setString(5, amMessage.arriveTime);
+		preparedStatement.setInt(6, amMessage.totalSeats);
+		preparedStatement.executeUpdate();
+		
+		resultSet = ((java.sql.Statement) statement).executeQuery(
+				"select * from flight_details where id = " + amMessage.flightID + ";");
+		
+		preparedStatement = connect.prepareStatement(
+				"update flight_details set departure_date = ?, price = ?,"
+				+ " available_seats = ? where id = " + amMessage.flightID + ";");
+
+		preparedStatement.setString(1, amMessage.departTime);
+		preparedStatement.setDouble(2, amMessage.price);
+		preparedStatement.setInt(3, amMessage.totalSeats);
+		preparedStatement.executeUpdate();
+	}
+
+	public void delete(AdmnManageMessage amMessage) throws SQLException{
+		statement = (Statement) connect.createStatement();
+		
+		resultSet = ((java.sql.Statement) statement).executeQuery(
+				"select from flight where id = " + amMessage.flightID + ";");
+		
+		preparedStatement = connect.prepareStatement(
+				"delete from flight where id = ?;");
+		preparedStatement.setInt(1, amMessage.flightID);
+		preparedStatement.execute();
+	}
+	
+	public void recevingReservationMessage() throws ClassNotFoundException, IOException, SQLException{
+		rMessage = null;
+		rMessage = (ReservationMessage) serverInputStream.readObject();
+		
+		switch(rMessage.opType){
+		
+		case SEARCH_OP: search(rMessage);
+		break;
+		case SUBMIT_OP: submit(rMessage);
+		break;
+		}
+		//sendMessage(rMessage);
+	}
+	
+	public void sendnMessage(Message m) throws IOException{
+		serverOutputStream.writeObject(rMessage);
+	}
+	
+	public void search(ReservationMessage rMessage) throws SQLException, IOException{
+		statement = (Statement) connect.createStatement();
+		
+		resultSet = ((java.sql.Statement) statement).executeQuery(
+				"select flightID from flight where from_airport like"
+				+ " 'rMessage.fromAirport' and to_airport like 'rMessage.toAirport'");
+		int flightID;
+		String airlineName;
+		String fromAirport;
+		String toAirport;
+		String departureTime;
+		String arrivalTime;
+		int totalSeats;
+		String departureDate="";
+		double price;
+		int availableSeats;
+		ReservationMessage reMessage;
+		Message message=new Message();
+		while(resultSet.next()){
+			flightID = resultSet.getInt(1);
+			airlineName = resultSet.getString(2);
+			fromAirport = resultSet.getString(3);
+			toAirport = resultSet.getString(4);
+			departureTime = resultSet.getString(5);
+			arrivalTime = resultSet.getString(6);
+			totalSeats = resultSet.getInt(7);
+			
+			//use flightID to locate departure_date, price and available_seats
+			resultSet = ((java.sql.Statement) statement).executeQuery(
+					"select departure_date, price, available_seats from"
+					+ " flight_details where flightID like"+ flightID+";");
+			
+			while(resultSet.next()){
+				departureDate = resultSet.getString(3);
+				price = resultSet.getDouble(4);
+				availableSeats = resultSet.getInt(5);
+			
+				//JOptionPane.showMessageDialog(null, flightID + airlineName + fromAirport
+					//	+ toAirport + departureTime + arrivalTime + totalSeats
+					//	+ departureDate + price + availableSeats);
+			}
+			reMessage=new ReservationMessage(0,"",fromAirport,toAirport,departureDate,500,0);
+			message.setReservationMessage(reMessage);
+			sendnMessage(message);
+		}
+		resultSet.close();	
+	}
+	
+	public void submit(ReservationMessage rMessage) throws SQLException{
+		int counter = 0;
+		int points = 0;
+		
+		statement = (Statement) connect.createStatement();
+		
+		resultSet = ((java.sql.Statement) statement).executeQuery(
+				"select flightID from flight where from_airport like"
+				+ " 'rMessage.fromAirport' and to_airport like 'rMessage.toAirport'");
+		int flightID;
+		double price;
+			flightID = resultSet.getInt(1);
+			
+			//use flightID to locate departure_date, price and available_seats
+			resultSet = ((java.sql.Statement) statement).executeQuery(
+					"select departure_date, price, available_seats from"
+					+ " flight_details where flightID like"+ flightID+";");
+			
+				price = resultSet.getDouble(4);
+			
+				//JOptionPane.showMessageDialog(null, flightID + rMessage.customerID + price);
+			
+				if(!resultSet.next()){
+					preparedStatement = connect.prepareStatement(
+							"insert into flight_details values (?,?,?,?)");
+					preparedStatement.setInt(1, counter);
+					preparedStatement.setInt(2, flightID);
+					preparedStatement.setInt(3, rMessage.customerID);
+					preparedStatement.setDouble(4, price);
+					preparedStatement.executeUpdate();
+				}
+				
+				if(!resultSet.next()){
+					preparedStatement = connect.prepareStatement(
+							"insert into customer values (?,?,?,?,?,?,?,?,?)");
+					points += 500;
+					preparedStatement.setInt(9, points);
+				}
+			counter++;
+				
+		resultSet.close();	
+	}
+	
+	public Message currentReservation(ReservationMessage rMessage) throws SQLException{
+		List<ReservationMessage> rMessages = new ArrayList<ReservationMessage>();
+		Message m=new Message();
+		int flightID;
+		int fID;
+		String airlineName;
+		String from;
+		String to;
+		String departureTime;
+		String arrivalTime;
+		int totalSeats;
+		double price;
+		
+		statement = (Statement) connect.createStatement();
+		
+		resultSet = ((java.sql.Statement) statement).executeQuery(
+				"select flightID from booking_ticket where custID ="
+				+ " 'rMessage.customerID'");
+		
+		int opType=rMessage.getOpType();
+		if(opType==0){//init current reservation;
+			String urName=rMessage.getUserName();
+			//根据urNmae来查询Customer数据库得到CustID_Pk。
+			//然后在Booking_Ticket数据库中根据CustID来得到对应的多张filghtID
+			//下面我就是根据得到的多张filghtID中的信息来做的
+			//
+			//resultSet =null;//这是方便你写，你需要补全
+			while(resultSet.next()){
+				flightID = resultSet.getInt(3); 
+				resultSet = ((java.sql.Statement) statement).executeQuery(
+						"select * from flight where flightID =" + flightID + ";"); 
+				if(resultSet.next()){
+					fID = resultSet.getInt(1);
+					airlineName = resultSet.getString(2);
+					from = resultSet.getString(3);
+					to = resultSet.getString(4);
+					departureTime = resultSet.getString(5);
+					arrivalTime = resultSet.getString(6);
+					totalSeats = resultSet.getInt(7); 
+					//就只有from to 和departureTime3个信息返回了
+					ReservationMessage rMessageTemp=new ReservationMessage(0,null,from,to,departureTime,0,0);
+					rMessages.add(rMessageTemp);
+				} 
+			} 
+			m.setType(5);
+			m.setReservationMessages(rMessages);
+			return m; 
+		
+			
+		}else if(opType==1){//del a line currenr  reservation;  
+			String urName=rMessage.getUserName();
+			String urFrom=rMessage.getFromAirport();
+			String urTo=rMessage.getToAirport(); 
+			//这里你就根据这3个信息做删除操作就行了，后面就没有了。 
+			
+		}else if(opType==2){//search 
+			String urFrom=rMessage.getFromAirport();
+			String urTo=rMessage.getToAirport();
+			//格式例如：january12017
+			String urDepartureDate=rMessage.getDepartureDate();
+			
+			    Pattern p = Pattern.compile("([0-9].{1,})");
+	            Matcher mat = p.matcher(urDepartureDate);
+	            mat.find();
+	            String str=mat.group(1);
+	        //这里我是帮你把年月日提出来，你不用也可以。不知道你数据库是咋样的，就做了这个
+	        String day=urDepartureDate.substring(0,urDepartureDate.length()-str.length());
+	        String month=str.substring(0,str.length()-4);
+	        String year=str.substring(str.length()-4,str.length());
+			
+			// urFrom urTo  urDepartureDate来查询filght数据库
+			//下面我就是根据得到的多张filght的信息来做的 
+			resultSet =null;//这是方便你写，你需要补全
+			while(resultSet.next()){  
+					fID = resultSet.getInt(1);
+					airlineName = resultSet.getString(2);
+					from = resultSet.getString(3);
+					to = resultSet.getString(4);
+					departureTime = resultSet.getString(5);
+					arrivalTime = resultSet.getString(6);
+					totalSeats = resultSet.getInt(7); 
+					//就只有from to 和departureTime3个信息返回了
+					ReservationMessage rMessageTemp=new ReservationMessage(0,null,from,to,departureTime,0,0);
+					rMessages.add(rMessageTemp);  
+			}
+			m.setType(6);
+			m.setReservationMessages(rMessages);
+			return m; 
+			
+		}
+		return m; 
+		 
+		
+	}
+	public void cancel(ReservationMessage rmessage) throws SQLException{
+		statement = (Statement) connect.createStatement();
+		
+		resultSet = ((java.sql.Statement) statement).executeQuery(
+				"select * from booking_ticket where custID = " + rmessage.customerID + ";");
+		
+		preparedStatement = connect.prepareStatement(
+				"delete from booking_ticket where custID = ?;");
+		preparedStatement.setInt(1, rmessage.customerID);
+		preparedStatement.execute();
+	}
+	
+	public void closeAll() throws IOException, SQLException{
+		serverInputStream.close();
+		serverOutputStream.close();
+		resultSet.close();
+		((ObjectInput) statement).close();
+		connect.close();
+		System.exit(0);		
+	}
+	
+	class HandleAClient implements Runnable {
+
+		private Socket socket;
+
+		public HandleAClient(Socket socket) {
+			this.socket = socket;
+		}
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			try {
+				//DataInputStream inputFromClient = new DataInputStream(socket.getInputStream());
+				//DataOutputStream outputToClient = new DataOutputStream(socket.getOutputStream());
+			    ObjectInputStream serverInputStream = new ObjectInputStream(socket.getInputStream());  
+			    ObjectOutputStream serverOutputStream = new ObjectOutputStream(socket.getOutputStream());  
+			     
+				while (true) {
+					 Message  message = (Message) serverInputStream.readObject();  
+					 switch(message.getType()){
+					  case 0:if(message.getReservationMessage().getOpType()==0)
+					         {
+						  		
+					         }
+					         else if(message.getReservationMessage().getOpType()==1){
+					        	 
+					         }
+					         else{
+					        	 
+					         }
+					    break;
+					  case 1  :
+						  try {
+							serverOutputStream.writeObject(cusLogIn(message.getUserCheckMessage()));
+						} catch (SQLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						  break;
+					  case 2  :  
+						try {
+							newUser(message.getNewUserMessage());
+						} catch (SQLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					     break;
+					  case 3 :
+						  try {
+							serverOutputStream.writeObject(admnLogIn(message.getAdmnCheckMessage()));
+						} catch (SQLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						  break;
+					  case 4 :
+						  if(message.getAdmnManageMessage().getOpType()==0){
+							  try {
+								insert(message.getAdmnManageMessage());
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						  }
+						  else if(message.getAdmnManageMessage().getOpType()==1){
+							  try {
+								update(message.getAdmnManageMessage());
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						  }
+						  else{
+							  try {
+								delete(message.getAdmnManageMessage());
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						  }
+						  break;
+						
+				       default:
+				    	   //null
+					 }
+				  
+				}
+			} catch (IOException ex) {
+				new Thread().start();
+				JOptionPane.showMessageDialog(null, "");
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public static void main(String[] args) throws ClassNotFoundException, IOException, SQLException {
+		// TODO Auto-generated method stub
+		
+		int port = 3306;
+		
+		ReservationServer server = new ReservationServer(port);
+	}
+
+}
